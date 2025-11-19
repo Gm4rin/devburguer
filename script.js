@@ -9,17 +9,23 @@ const cartCount = document.getElementById("cart-count");
 const addressInput = document.getElementById("address"); 
 const addressWarn = document.getElementById("address-warn"); 
 
+let cart = []; // Variável global do carrinho
+
+
+// ===========================================
+// LÓGICA DO MODAL (ABRIR E FECHAR)
+// ===========================================
 
 // 1. ABRIR O MODAL
 cartbtn.addEventListener("click", function() {
-// Remove 'hidden' para mostrar e garante que 'flex' esteja lá para centralizar
+// Remove 'hidden' e garante que 'flex' esteja lá para centralizar
 cartModal.classList.remove("hidden");
 cartModal.classList.add("flex");
 });
 
 // 2. FECHAR O MODAL - Ao clicar no botão "Fechar"
 closeModalBtn.addEventListener("click", function() {
-// Adiciona 'hidden' para fechar e 'flex' é desativado
+// Adiciona 'hidden' para fechar
 cartModal.classList.add("hidden");
 cartModal.classList.remove("flex");
 });
@@ -32,31 +38,23 @@ cartModal.classList.remove("flex");
 }
 });
 
-menu.addEventListener("click", function(event) {
-let parentButton = event.target.closest(".add-to-cart-btn");
 
-if (!parentButton){
-const name = parentButton.getAttribute("data-price")
-const price = parseFloat(parentButton.getAttribute("data-name"))
-
-}
-})
-let cart = []; // Variável global do carrinho
+// ===========================================
+// LÓGICA DO CARRINHO (ADICIONAR)
+// ===========================================
 
 // Função para adicionar item ao carrinho
 function addtoCart(name, price) {
-// 1. Verifica se o item já existe no carrinho
+// Verifica se o item já existe no carrinho
 const existingItem = cart.find(item => item.name === name);
 
 if (existingItem) {
-// Se existir, apenas aumenta a quantidade
 existingItem.quantity += 1;
 } else {
-// Se não existir, adiciona como um novo item
 cart.push({
-name,
-price,
-quantity: 1
+    name,
+    price,
+    quantity: 1
 });
 }
 updateCartModal();
@@ -64,67 +62,24 @@ updateCartModal();
 
 // 4. LÓGICA DE CLIQUE NO MENU (CORRIGIDA)
 menu.addEventListener("click", function(event) {
-// Verifica se o clique foi em um elemento que tem a classe 'add-to-cart-btn' ou é filho dele
+// Verifica se o clique foi no botão de adicionar ou em um de seus filhos
 let parentButton = event.target.closest(".add-to-cart-btn");
 
-// CORREÇÃO 1: A lógica do IF foi invertida
 if (parentButton) {
-// CORREÇÃO 2: Atributos lidos corretamente (name/price)
+// Atributos lidos corretamente (name/price)
 const name = parentButton.getAttribute("data-name");
-// Converte o preço para número decimal
 const price = parseFloat(parentButton.getAttribute("data-price")); 
 
-// Chama a função para adicionar ao carrinho
 addtoCart(name, price);
 }
 });
 
-// 5. ATUALIZA O MODAL DO CARRINHO (CORRIGIDA)
-function updateCartModal() {
-cartItemsContainer.innerHTML = ""; // Limpa o conteúdo
-let total = 0;
 
-cart.forEach(item => {
-const cartItemElement = document.createElement("div");
-cartItemElement.classList.add("flex", "justify-between", "flex-col", "mb-4");
-// Adiciona classes Tailwind para layout
+// ===========================================
+// LÓGICA DO CARRINHO (REMOVER)
+// ===========================================
 
-
-const itemTotal = item.price * item.quantity;
-total += itemTotal;
-
-// CORREÇÃO 3 & 4: Erro de digitação (rice -> price) e tags HTML fechadas
-cartItemElement.innerHTML = `
-<div class="flex items-center justify-between ">
-<div class="flex flex-col">
-<p class="font-bold">${item.name}</p>
-<p>Qtd: ${item.quantity}</p>
-<p class="font-medium mt-2">R$ ${item.price.toFixed(2)}</p>
-</div>
-
-<button class="remove-btn bg-red-500 text-white px-3 py-1 rounded-md" 
-data-name="${item.name}">
-Remover
-</button>
-</div>
-`;
-cartItemsContainer.appendChild(cartItemElement);
-});
-
-// Atualiza o total
-cartTotal.innerText = "R$" + total.toFixed(2);
-// Atualiza o contador de itens (opcional, mas bom para a UI)
-cartCount.innerText = cart.length; 
-}
-
-// 6. REMOVER ITENS DO CARRINHO
-cartItemsContainer.addEventListener("click", function(event) {
-if (event.target.classList.contains("remove-btn")) {
-const name = event.target.getAttribute("data-name")
-removeItemCart(name);
-}
-})
-
+// Função para remover item do carrinho
 function removeItemCart(name) {
 const index = cart.findIndex(item => item.name === name);
 
@@ -132,85 +87,155 @@ if(index !== -1) {
 const item = cart[index];
 
 if(item.quantity > 1){
-item.quantity -= 1;
-updateCartModal();
-return;
+    item.quantity -= 1;
+    updateCartModal();
+    return;
 }
 
+// Remove o item inteiro se a quantidade for 1
 cart.splice(index, 1);
 updateCartModal();
 }
-
 }
-//adrress
-addressInput.addEventListener("input", function(event) {
-    let inpuValue = event.target.value;
 
-    if(inpuValue !== ""){
-        addressInput.classList.remove("border-red-500");
-        addressWarn.classList.add("hidden");
-    }
+// 6. EVENT LISTENER PARA REMOVER ITENS
+cartItemsContainer.addEventListener("click", function(event) {
+if (event.target.classList.contains("remove-btn")) {
+const name = event.target.getAttribute("data-name");
+removeItemCart(name);
+}
+});
 
-})
-//finalizar compra
-checkoutBtn.addEventListener("click", function() {
-    
-    const isopen = checkRestaurantOpen();
-    if(!isopen){
+
+// ===========================================
+// ATUALIZAÇÃO VISUAL DO MODAL
+// ===========================================
+
+function updateCartModal() {
+cartItemsContainer.innerHTML = "";
+let total = 0;
+
+cart.forEach(item => {
+const cartItemElement = document.createElement("div");
+// Ajustado para melhor layout do item
+cartItemElement.classList.add("flex", "justify-between", "items-center", "border-b", "py-2"); 
+
+const itemTotal = item.price * item.quantity;
+total += itemTotal;
+
+// Exibe o preço unitário com R$ e duas casas decimais
+const formattedPrice = "R$ " + item.price.toFixed(2); 
+
+cartItemElement.innerHTML = `
+    <div class="flex items-center justify-between w-full">
+        <div class="flex flex-col">
+            <p class="font-bold">${item.name}</p>
+            <p>Qtd: ${item.quantity}</p>
+            <p class="font-medium mt-2">${formattedPrice}</p>
+        </div>
         
-        Toastify({
-        text: "Ops o restaurante está fechado!",
-        duration: 3000,
-        close: true,
-        gravity: "top", 
-        position: "right",
-        stopOnFocus: true,
-        style: {
-            background: "#ef4444",
-        },
-        }).showToast();
+        <button class="remove-btn bg-red-500 text-white px-3 py-1 rounded-md" 
+                data-name="${item.name}">
+            Remover
+        </button>
+    </div>
+`;
+cartItemsContainer.appendChild(cartItemElement);
+// O event listener para remoção está no cartItemsContainer (delegação de eventos)
+});
 
-        return;
-    }
-    
-    if(cart.length === 0) return;
-     if(addressInput.value === ""){
-        addressWarn.classList.remove("hidden");
-        addressInput.classList.add("border-red-500");
-        return;
-     }
-
-//enviar pedido para api do whatsapp
-     const cartItems = cart.map((item) =>{
-        return (
-          `${item.name} Quantidade: (${item.quantity}) Preço: R$${item.price}`                                         
-        )
-     }).join("")
-
-    const message = encodeURIComponent(cartItems)
-    const phone ="43991411567"
-    
-    window.open(`https://wa.me/${phone}?text=${message} Endereço: ${addressInput.value}`, "_blank")
-
-    cart = [];
-    updateCartModal();
-
-})
-//verifica se o restaurante esta aberto
-function checkRestaurantOpen (){
-    const data = new Date ();
-    const hora = data.getHours();
-    return hora >= 18 && hora < 22;
+// Atualiza o total com R$
+cartTotal.innerText = "R$ " + total.toFixed(2);
+// Atualiza o contador de itens
+cartCount.innerText = cart.length; 
 }
+
+
+// ===========================================
+// LÓGICA DE VALIDAÇÃO E CHECKOUT
+// ===========================================
+
+// Validação de endereço
+addressInput.addEventListener("input", function(event) {
+let inpuValue = event.target.value;
+
+if(inpuValue !== ""){
+addressInput.classList.remove("border-red-500");
+addressWarn.classList.add("hidden");
+}
+})
+
+// Lógica de finalização de compra (WhatsApp)
+checkoutBtn.addEventListener("click", function() {
+
+const isopen = checkRestaurantOpen();
+if(!isopen){
+
+Toastify({
+text: "Ops o restaurante está fechado! O pedido só pode ser finalizado durante o horário de funcionamento.",
+duration: 3000,
+close: true,
+gravity: "top", 
+position: "right",
+stopOnFocus: true,
+style: {
+    background: "#ef4444",
+},
+}).showToast();
+
+return;
+}
+
+if(cart.length === 0) return;
+
+// Validação de endereço
+if(addressInput.value === ""){
+addressWarn.classList.remove("hidden");
+addressInput.classList.add("border-red-500");
+return;
+}
+
+// Enviar pedido para api do whatsapp
+const cartItems = cart.map((item) =>{
+return (
+    // Formatação para quebra de linha (\n) e negrito (*) no WhatsApp
+    `*${item.name}* | Qtd: (${item.quantity}) | R$ ${item.price.toFixed(2)}`                                         
+)
+}).join("\n") // Quebra de linha entre os itens
+
+const totalOrder = "R$ " + cartTotal.innerText.replace("R$ ", "");
+
+const message = encodeURIComponent(`*NOVO PEDIDO:*\n\n${cartItems}\n\n*Total do Pedido:* ${totalOrder}\n*Endereço:* ${addressInput.value}`);
+
+// Substitua o número de telefone
+const phone ="43991411567"
+
+window.open(`https://wa.me/${phone}?text=${message}`, "_blank")
+
+// Limpa o carrinho e fecha o modal após o envio
+cart = [];
+updateCartModal();
+cartModal.classList.add("hidden");
+cartModal.classList.remove("flex");
+
+});
+
+// Verifica se o restaurante está aberto
+function checkRestaurantOpen (){
+const data = new Date ();
+const hora = data.getHours();
+// Horário de funcionamento: 11:00 às 22:00
+return hora >= 18 && hora < 22;
+}
+
+// Aplica o estilo de aberto/fechado na UI
 const spanItem = document.getElementById("date-span");
 const isOpen = checkRestaurantOpen();
 
 if(isOpen){
-    spanItem.classList.remove("bg-red-500")
-    spanItem.classList.add("bg-green-600")
+spanItem.classList.remove("bg-red-500");
+spanItem.classList.add("bg-green-600");
 }else{
-    spanItem.classList.remove("bg-green-600")
-    spanItem.classList.add("bg-red-500")
+spanItem.classList.remove("bg-green-600");
+spanItem.classList.add("bg-red-500");
 }
-
-
